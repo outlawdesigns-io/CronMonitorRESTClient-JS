@@ -1,5 +1,5 @@
 {
-  "name": "@outlawdesigns/cronrestclient",
+  "name": "@outlawdesigns/cronmonitor-rest-client",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@outlawdesigns/authenticationclient": "^1.0.0",
     "axios": "^1.8.4"
-  }
+  },
+  "type": "module"
 }

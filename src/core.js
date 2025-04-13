@@ -3,7 +3,7 @@ import authClient from '@outlawdesigns/authenticationclient';
 import createJobs from './models/job.js';
 import createExecutions from './models/execution.js';
 import createSubscriptions from './models/subscription.js';
-import createEvents from './models/events.js';
+import createEvents from './models/event.js';
 
 export function createApiClient(baseURL){
   const axiosInstance = axios.create({baseURL:baseURL});

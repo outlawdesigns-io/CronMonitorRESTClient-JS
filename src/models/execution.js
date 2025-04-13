@@ -1,8 +1,8 @@
 import { createFormData } from '../formData.js';
 
-const resource = '/job';
+const resource = '/execution';
 
-export default function createJobs(axios){
+export default function createExecutions(axios){
   return {
     async getAll(){
       const res = await axios.get(`${resource}`);
@@ -31,12 +31,16 @@ export default function createJobs(axios){
       const res = await axios.delete(`${resource}/${id}`);
       return res.data;
     },
-    async getCrontab(hostname,isImg){
-      const res = await axios.get(`build/${hostname}/${isImg}`);
+    async last(jobId){
+      const res = await axios.get(`last/${jobId}`);
       return res.data;
     },
-    async getAvgExecution(id){
-      const res = await axios.get(`${resource}/${id}/avg`);
+    async next(jobId){
+      const res = await axios.get(`next/${jobId}`);
+      return res.data;
+    },
+    async nextPattern(cronPattern){
+      const res = await axios.get(`next/pattern/${encodeURIComponent(cronPattern)}`);
       return res.data;
     }
   }

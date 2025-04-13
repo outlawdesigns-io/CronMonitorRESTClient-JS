@@ -1,3 +1,3 @@
-import apiClientSingleton from './singleton.js';
+import apiClientSingleton from './src/singleton.js';
 
 export default apiClientSingleton;
