@@ -7,18 +7,19 @@ import createEvents from './models/event.js';
 
 export function createApiClient(baseURL){
   const axiosInstance = axios.create({baseURL:baseURL});
-  const auth = authClient;
-  auth.onTokenUpdate((token)=>{
+  const _auth = authClient;
+  _auth.onTokenUpdate((token)=>{
     axiosInstance.defaults.headers.common['auth_token'] = token;
   });
   axiosInstance.interceptors.response.use(
     response => response,
     async error => {
       const originalRequest = error.config;
+      //use of bad token. Refresh it and try again.
       if(error.response && error.response.status === 400 && error.response.data?.includes?.('Invalid Token') && !originalRequest._retry){
         originalRequest._retry = true;
         try{
-          const newToken = await authClient.refreshToken();
+          const newToken = await _auth.refreshToken();
           axiosInstance.defaults.headers.common['auth_token'] = newToken;
           originalRequest.headers['auth_token'] = newToken;
           return axiosInstance(originalRequest);
@@ -26,11 +27,22 @@ export function createApiClient(baseURL){
           return Promise.reject(refreshErr);
         }
       }
+      if(error?.response?.data){
+        return Promise.reject(error.response.data);
+      }
       return Promise.reject(error);
     }
   );
+  axiosInstance.interceptors.request.use((config)=>{
+    if(!_auth.getAuthToken()){
+      throw new Error('authenticate or provide an auth_token to make API calls.');
+    }
+    return config;
+  },(err)=>{
+    return Promise.reject(err);
+  });
   return {
-    auth,
+    auth:_auth,
     jobs: createJobs(axiosInstance),
     executions:createExecutions(axiosInstance),
     subscriptions:createSubscriptions(axiosInstance),
