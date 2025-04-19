@@ -8,6 +8,7 @@ import createEvents from './models/event.js';
 export function createApiClient(baseURL){
   const axiosInstance = axios.create({baseURL:baseURL});
   const _auth = authClient;
+  let _credentials = {username:null,password:null};
   _auth.onTokenUpdate((token)=>{
     axiosInstance.defaults.headers.common['auth_token'] = token;
   });
@@ -19,7 +20,7 @@ export function createApiClient(baseURL){
       if(error.response && error.response.status === 400 && error.response.data?.includes?.('Invalid Token') && !originalRequest._retry){
         originalRequest._retry = true;
         try{
-          const newToken = await _auth.refreshToken();
+          const newToken = (_credentials.username === null || _credentials.password === null) ? await _auth.refreshToken() : await _auth.refreshToken(_credentials.username,_credentials.password);
           axiosInstance.defaults.headers.common['auth_token'] = newToken;
           originalRequest.headers['auth_token'] = newToken;
           return axiosInstance(originalRequest);
@@ -43,6 +44,10 @@ export function createApiClient(baseURL){
   });
   return {
     auth:_auth,
+    setCredentials:function(username,password){
+      _credentials.username = username;
+      _credentials.password = password;
+    },
     jobs: createJobs(axiosInstance),
     executions:createExecutions(axiosInstance),
     subscriptions:createSubscriptions(axiosInstance),
