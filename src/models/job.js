@@ -17,13 +17,13 @@ export default function createJobs(axios){
     },
     async create(payload){
       const formData = await createFormData();
-      Object.keys(payload).forEach((k)=>{ if (payload[k] !== null) formData.append(k,payload[k]) });
+      Object.keys(payload).forEach((k)=>{ payload[k] === null ? formData.append(k,'null'):formData.append(k,payload[k]) });
       const res = await axios.post(`${resource}`,formData);
       return res.data;
     },
     async update(id,payload){
       const formData = await createFormData();
-      Object.keys(payload).forEach((k)=>{ if (payload[k] !== null) formData.append(k,payload[k]) });
+      Object.keys(payload).forEach((k)=>{ payload[k] === null ? formData.append(k,'null'):formData.append(k,payload[k]) });
       const res = await axios.put(`${resource}/${id}`,formData);
       return res.data;
     },
