@@ -5,49 +5,42 @@ import createExecutions from './models/execution.js';
 import createSubscriptions from './models/subscription.js';
 import createEvents from './models/event.js';
 
-export function createApiClient(baseURL){
+export function createApiClient(baseURL, requestedScope){
+  const oauthScope = requestedScope; //the scope(s) for this app
+  const oauthResource = baseURL;
+  const oauthRefreshBuffer = 300;
   const axiosInstance = axios.create({baseURL:baseURL});
-  const _auth = authClient;
-  let _credentials = {username:null,password:null};
-  _auth.onTokenUpdate((token)=>{
-    axiosInstance.defaults.headers.common['auth_token'] = token;
+  authClient.onTokenUpdate((token)=>{
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   });
-  axiosInstance.interceptors.response.use(
-    response => response,
-    async error => {
-      const originalRequest = error.config;
-      //use of bad token. Refresh it and try again.
-      if(error.response && error.response.status === 400 && error.response.data?.includes?.('Invalid Token') && !originalRequest._retry){
-        originalRequest._retry = true;
+  axiosInstance.interceptors.request.use(async (config)=>{
+    const token = authClient.getAccessToken();
+    if(!token) throw new Error(`Authenticate before making API calls.`);
+    const refreshToken = authClient.getRefreshToken();
+    let user;
+    if(refreshToken){
+      try{
+        user = await authClient.verifyAccessToken(token,oauthResource);
+      }catch(err){
+        console.log(err);
+        return;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const timeDiffSeconds = user.exp - now;
+      if(timeDiffSeconds <= oauthRefreshBuffer){
         try{
-          const newToken = (_credentials.username === null || _credentials.password === null) ? await _auth.refreshToken() : await _auth.refreshToken(_credentials.username,_credentials.password);
-          axiosInstance.defaults.headers.common['auth_token'] = newToken;
-          originalRequest.headers['auth_token'] = newToken;
-          return axiosInstance(originalRequest);
-        }catch(refreshErr){
-          return Promise.reject(refreshErr);
+          await authClient.refreshToken(oauthScope,oauthResource);
+        }catch(err){
+          console.log(err);
+          return;
         }
       }
-      if(error?.response?.data){
-        return Promise.reject(error.response.data);
-      }
-      return Promise.reject(error);
     }
-  );
-  axiosInstance.interceptors.request.use((config)=>{
-    if(!_auth.getAuthToken()){
-      throw new Error('authenticate or provide an auth_token to make API calls.');
-    }
+    config.headers['Authorization'] = `Bearer ${authClient.getAccessToken()}`;
     return config;
-  },(err)=>{
-    return Promise.reject(err);
   });
   return {
-    auth:_auth,
-    setCredentials:function(username,password){
-      _credentials.username = username;
-      _credentials.password = password;
-    },
+    auth:authClient,
     jobs: createJobs(axiosInstance),
     executions:createExecutions(axiosInstance),
     subscriptions:createSubscriptions(axiosInstance),

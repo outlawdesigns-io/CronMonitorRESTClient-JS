@@ -9,8 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@outlawdesigns/authenticationclient": "^1.0.0",
-    "axios": "^1.8.4"
+    "@outlawdesigns/authenticationclient": "2.0.3",
+    "axios": "^1.8.4",
+    "openid-client": "^6.6.2"
   },
   "type": "module"
 }
