@@ -20,7 +20,7 @@ export function createApiClient(baseURL, requestedScope){
     let user;
     if(refreshToken){
       try{
-        user = await authClient.verifyAccessToken(token,oauthResource);
+        user = await authClient.verifyAccessToken(token,[oauthResource]);
       }catch(err){
         console.log(err);
         return;
@@ -29,7 +29,7 @@ export function createApiClient(baseURL, requestedScope){
       const timeDiffSeconds = user.exp - now;
       if(timeDiffSeconds <= oauthRefreshBuffer){
         try{
-          await authClient.refreshToken(oauthScope,oauthResource);
+          await authClient.refreshToken(oauthScope,[oauthResource]);
         }catch(err){
           console.log(err);
           return;
