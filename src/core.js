@@ -10,33 +10,33 @@ export function createApiClient(baseURL, requestedScope){
   const oauthResource = baseURL;
   const oauthRefreshBuffer = 300;
   const axiosInstance = axios.create({baseURL:baseURL});
-  authClient.onTokenUpdate((token)=>{
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  let onRefreshCallback;
+  authClient.onTokenUpdate((tokenSet)=>{
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenSet.access_token}`;
+    if(onRefreshCallback){
+      onRefreshCallback(tokenSet);
+    }
   });
   axiosInstance.interceptors.request.use(async (config)=>{
-    const token = authClient.getAccessToken();
+    let token = authClient.getAccessToken();
     if(!token) throw new Error(`Authenticate before making API calls.`);
-    const refreshToken = authClient.getRefreshToken();
     let user;
-    if(refreshToken){
-      try{
-        user = await authClient.verifyAccessToken(token,[oauthResource]);
-      }catch(err){
-        console.log(err);
-        return;
-      }
-      const now = Math.floor(Date.now() / 1000);
-      const timeDiffSeconds = user.exp - now;
-      if(timeDiffSeconds <= oauthRefreshBuffer){
-        try{
+    try{
+      user = await authClient.verifyAccessToken(token,[oauthResource]);
+    }catch(err){
+      if(err.code === "ERR_JWT_EXPIRED"){
+        const refreshToken = authClient.getRefreshToken();
+        if(refreshToken){
           await authClient.refreshToken(oauthScope,[oauthResource]);
-        }catch(err){
-          console.log(err);
-          return;
+        }else{
+          await authClient.clientCredentialFlow(oauthScope,[oauthResource]);
         }
+        token = authClient.getAccessToken();
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }else{
+        throw err;
       }
     }
-    config.headers['Authorization'] = `Bearer ${authClient.getAccessToken()}`;
     return config;
   });
   return {
@@ -44,6 +44,9 @@ export function createApiClient(baseURL, requestedScope){
     jobs: createJobs(axiosInstance),
     executions:createExecutions(axiosInstance),
     subscriptions:createSubscriptions(axiosInstance),
-    events:createEvents(axiosInstance)
+    events:createEvents(axiosInstance),
+    onRefresh(cb){
+      onRefreshCallback = cb;
+    }
   }
 }
